@@ -1,0 +1,25 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Deep Indigo Background Circle -->
+  <circle cx="64" cy="64" r="62" fill="#4F46E5"/>
+  
+  <!-- Straight Ruler (Horizontal at the bottom) -->
+  <rect x="24" y="92" width="80" height="14" rx="4" fill="white"/>
+  <!-- Ruler Ticks -->
+  <path d="M34 92V98M44 92V102M54 92V98M64 92V102M74 92V98M84 92V102M94 92V98" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Eyedropper (Centered, Tilted 45 degrees) -->
+  <g transform="translate(60, 48) rotate(-45)">
+    <!-- Bulb (Squeeze part) -->
+    <rect x="-10" y="-35" width="20" height="25" rx="10" fill="white"/>
+    <!-- Glass Tube -->
+    <rect x="-7" y="-10" width="14" height="35" rx="2" stroke="white" stroke-width="3"/>
+    <!-- Magenta Color Liquid -->
+    <rect x="-4" y="0" width="8" height="18" rx="1" fill="#FF00FF"/>
+    <!-- Dropper Tip -->
+    <path d="M-7 25 L7 25 L0 42 Z" fill="white"/>
+  </g>
+  
+  <!-- Floating Color Droplet Result (Top Right) -->
+  <circle cx="100" cy="35" r="18" fill="#FF00FF" stroke="white" stroke-width="4"/>
+  <circle cx="94" cy="29" r="6" fill="white" fill-opacity="0.3"/>
+</svg>

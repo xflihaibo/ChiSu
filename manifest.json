@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "ChiSu (尺素) - 开发者像素助手",
+  "short_name": "ChiSu",
+  "version": "0.1.0",
+  "description": "专业级前端开发者工具。集成高精度屏幕取色器(Color Picker)、多功能像素标尺(Pixel Ruler)及元素盒子模型(Box Model)审查，助力网页布局与CSS色彩调试。",
+  "icons": {
+    "16": "icons/icon.png",
+    "32": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
+  "action": {
+    "default_title": "打开 DevLens"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"]
+}

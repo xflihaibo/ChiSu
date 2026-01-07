@@ -1,0 +1,55 @@
+<svg width="440" height="280" viewBox="0 0 440 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Gradient -->
+  <rect width="440" height="280" fill="url(#bg_gradient)"/>
+  
+  <!-- Decorative Grid Pattern -->
+  <path d="M0 40H440M0 80H440M0 120H440M0 160H440M0 200H440M0 240H440M40 0V280M80 0V280M120 0V280M160 0V280M200 0V280M240 0V280M280 0V280M320 0V280M360 0V280M400 0V280" stroke="white" stroke-opacity="0.05" stroke-width="1"/>
+
+  <!-- Logo Section -->
+  <g transform="translate(40, 60)">
+    <!-- Circular Background -->
+    <circle cx="60" cy="60" r="60" fill="white" fill-opacity="0.1"/>
+    <circle cx="60" cy="60" r="54" fill="#4F46E5"/>
+    
+    <!-- Magnifying Glass -->
+    <circle cx="56" cy="56" r="30" stroke="white" stroke-width="6"/>
+    
+    <!-- Ruler Handle -->
+    <rect x="78" y="78" width="34" height="12" rx="6" transform="rotate(45 78 78)" fill="white"/>
+    <path d="M86 86L90 90M94 94L98 98M102 102L106 106" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- Picker Point -->
+    <circle cx="56" cy="56" r="6" fill="#FF00FF"/>
+  </g>
+
+  <!-- Text Section -->
+  <text x="180" y="110" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="800" letter-spacing="-1">ChiSu</text>
+  <text x="180" y="150" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="600" opacity="0.9">尺素</text>
+  
+  <!-- Tagline -->
+  <rect x="180" y="180" width="220" height="32" rx="6" fill="#FF00FF" fill-opacity="0.2"/>
+  <text x="190" y="202" fill="#FF00FF" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700">专业级开发者像素助手</text>
+  
+  <!-- Features Micro-icons -->
+  <g transform="translate(180, 230)" opacity="0.6">
+    <text x="0" y="0" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="12">Ruler</text>
+    <circle cx="45" cy="-4" r="2" fill="white"/>
+    <text x="55" y="0" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="12">Picker</text>
+    <circle cx="105" cy="-4" r="2" fill="white"/>
+    <text x="115" y="0" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="12">Inspector</text>
+  </g>
+
+  <!-- Glow effects -->
+  <circle cx="400" cy="40" r="100" fill="#FF00FF" fill-opacity="0.1" filter="blur(50px)"/>
+  <circle cx="40" cy="240" r="80" fill="#4F46E5" fill-opacity="0.2" filter="blur(40px)"/>
+
+  <defs>
+    <linearGradient id="bg_gradient" x1="0" y1="0" x2="440" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E1B4B"/> <!-- Deep Indigo -->
+      <stop offset="1" stop-color="#312E81"/> <!-- Lighter Indigo -->
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+  </defs>
+</svg>
