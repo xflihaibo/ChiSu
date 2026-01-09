@@ -9,6 +9,8 @@ export class PickerModule {
   private colorFormat: 'hex' | 'rgb' | 'hsl' = 'hex';
   private lastMouseX: number = -1000;
   private lastMouseY: number = -1000;
+  private isScrolling: boolean = false;
+  private scrollTimeout: any = null;
 
   constructor(private container: ShadowRoot) {
     this.canvas = document.createElement('canvas');
@@ -33,6 +35,7 @@ export class PickerModule {
 
   public unmount() {
     this.isActive = false;
+    window.removeEventListener('scroll', this.handleScroll);
     if (this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
     }
@@ -42,10 +45,78 @@ export class PickerModule {
     this.screenSnapshot = null;
   }
 
+  private isPressing: boolean = false;
+
   private setupListeners() {
     this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    this.canvas.addEventListener('click', (e) => this.handlePick(e));
+    this.canvas.addEventListener('mousedown', async () => { 
+      this.isPressing = true; 
+      // 桌面端点击瞬间也刷新快照
+      await this.takeSnapshot();
+    });
+    this.canvas.addEventListener('mouseup', (e) => { 
+      this.isPressing = false; 
+      this.handlePick(e); 
+    });
+    this.canvas.addEventListener('click', () => {
+      // 这里的逻辑已经由 mouseup 处理
+    });
+
+    // 关键：确保 canvas 能接收事件
+    this.canvas.style.pointerEvents = 'auto';
+
+    // 监听滚动事件：滚动时隐藏，停止后重绘
+    window.addEventListener('scroll', this.handleScroll, { passive: true });
+
+    // Touch Support - 深度交互定制
+    this.canvas.addEventListener('touchstart', async (e) => {
+      // 1. 标记为按下状态
+      this.isPressing = true;
+      // 2. 核心：在取色操作开始时禁止页面滚动
+      e.preventDefault(); 
+      
+      // 3. 关键修复：按下瞬间强制更新快照，确保获取当前最新滚动位置的可视内容
+      await this.takeSnapshot();
+
+      const touch = e.touches[0];
+      this.lastMouseX = touch.clientX;
+      this.lastMouseY = touch.clientY;
+      this.render(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      if (!this.isPressing) return;
+      // 3. 持续禁止滚动，确保取色精准
+      e.preventDefault(); 
+      const touch = e.touches[0];
+      this.lastMouseX = touch.clientX;
+      this.lastMouseY = touch.clientY;
+      this.render(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      if (!this.isPressing) return;
+      this.isPressing = false;
+      // 4. 获取松开时的坐标并完成取色复制
+      const touch = e.changedTouches[0];
+      this.handlePick({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent);
+      // 5. 渲染重置（隐藏放大镜）
+      this.render(-1000, -1000);
+    }, { passive: false });
   }
+
+  private handleScroll = () => {
+    if (!this.isActive) return;
+    this.isScrolling = true;
+    this.render(-1000, -1000); 
+
+    if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+    this.scrollTimeout = setTimeout(async () => {
+      await this.takeSnapshot();
+      this.isScrolling = false;
+      this.render(this.lastMouseX, this.lastMouseY);
+    }, 150);
+  };
 
   private resize() {
     const width = window.innerWidth;
@@ -89,16 +160,40 @@ export class PickerModule {
   private render(mouseX: number = -1000, mouseY: number = -1000) {
     const width = window.innerWidth;
     const height = window.innerHeight;
+    const isMobile = width <= 500;
     this.ctx.clearRect(0, 0, width, height);
 
-    if (!this.screenSnapshot) return;
+    // 如果正在滚动或没有截图，显示同步提示并返回
+    if (!this.screenSnapshot || this.isScrolling) {
+      if (this.isScrolling) {
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        this.ctx.font = '12px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('正在同步内容...', width / 2, height / 2);
+      }
+      return;
+    }
+
+    // 移动端优化：只有在按下时才显示放大镜
+    if (isMobile && !this.isPressing && mouseX !== -1000) {
+      return;
+    }
+
+    // 如果坐标未初始化，仅执行必要更新并返回
+    if (mouseX < 0 || mouseY < 0) {
+      this.updateFormatIndicator();
+      return;
+    }
+
+    // In mobile, offset the loupe slightly upwards to avoid finger blockage
+    const renderY = isMobile ? mouseY - 40 : mouseY;
 
     // Draw the Loupe
     this.ctx.save();
     
     // Draw outer circle
     this.ctx.beginPath();
-    this.ctx.arc(mouseX, mouseY, this.loupeSize / 2, 0, Math.PI * 2);
+    this.ctx.arc(mouseX, renderY, this.loupeSize / 2, 0, Math.PI * 2);
     this.ctx.clip();
 
     // Draw zoomed image
@@ -106,22 +201,22 @@ export class PickerModule {
     this.ctx.drawImage(
       this.screenSnapshot,
       mouseX - sourceSize / 2, mouseY - sourceSize / 2, sourceSize, sourceSize,
-      mouseX - this.loupeSize / 2, mouseY - this.loupeSize / 2, this.loupeSize, this.loupeSize
+      mouseX - this.loupeSize / 2, renderY - this.loupeSize / 2, this.loupeSize, this.loupeSize
     );
 
     // Draw crosshair
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
-    this.ctx.moveTo(mouseX - this.loupeSize / 2, mouseY);
-    this.ctx.lineTo(mouseX + this.loupeSize / 2, mouseY);
-    this.ctx.moveTo(mouseX, mouseY - this.loupeSize / 2);
-    this.ctx.lineTo(mouseX, mouseY + this.loupeSize / 2);
+    this.ctx.moveTo(mouseX - this.loupeSize / 2, renderY);
+    this.ctx.lineTo(mouseX + this.loupeSize / 2, renderY);
+    this.ctx.moveTo(mouseX, renderY - this.loupeSize / 2);
+    this.ctx.lineTo(mouseX, renderY + this.loupeSize / 2);
     this.ctx.stroke();
 
     // Draw center pixel border
     this.ctx.strokeStyle = '#fff';
-    this.ctx.strokeRect(mouseX - this.zoom / 2, mouseY - this.zoom / 2, this.zoom, this.zoom);
+    this.ctx.strokeRect(mouseX - this.zoom / 2, renderY - this.zoom / 2, this.zoom, this.zoom);
 
     this.ctx.restore();
 
@@ -129,7 +224,7 @@ export class PickerModule {
     this.ctx.strokeStyle = '#333';
     this.ctx.lineWidth = 4;
     this.ctx.beginPath();
-    this.ctx.arc(mouseX, mouseY, this.loupeSize / 2, 0, Math.PI * 2);
+    this.ctx.arc(mouseX, renderY, this.loupeSize / 2, 0, Math.PI * 2);
     this.ctx.stroke();
 
     // Draw color label
@@ -142,11 +237,11 @@ export class PickerModule {
     const boxWidth = textMetrics.width + paddingX * 2;
     
     this.ctx.fillStyle = '#333';
-    this.ctx.fillRect(mouseX - boxWidth / 2, mouseY + this.loupeSize / 2 + 5, boxWidth, 25);
+    this.ctx.fillRect(mouseX - boxWidth / 2, renderY + this.loupeSize / 2 + 5, boxWidth, 25);
     
     this.ctx.fillStyle = '#fff';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText(formattedColor, mouseX, mouseY + this.loupeSize / 2 + 22);
+    this.ctx.fillText(formattedColor, mouseX, renderY + this.loupeSize / 2 + 22);
     
     // Updated: Mode indicator integration
     this.updateFormatIndicator();
@@ -161,42 +256,56 @@ export class PickerModule {
 
   private updateFormatIndicator() {
     let formatEl = this.container.getElementById('format-indicator');
+    const isMobile = window.innerWidth <= 500;
+
     if (!formatEl) {
       formatEl = document.createElement('div');
       formatEl.id = 'format-indicator';
       formatEl.style.cssText = `
         position: absolute;
-        top: 75px;
+        top: ${isMobile ? '65px' : '75px'};
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         color: #fff;
-        padding: 6px 16px;
-        border-radius: 20px;
-        font-size: 11px;
+        padding: 4px 12px;
+        border-radius: 100px;
+        font-size: 10px;
+        font-weight: 600;
         font-family: sans-serif;
-        letter-spacing: 0.5px;
+        white-space: nowrap;
         pointer-events: none;
         z-index: 2147483647;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
       `;
       this.container.appendChild(formatEl);
     }
-    formatEl.innerText = `按 [F] 切换颜色格式: ${this.colorFormat.toUpperCase()}`;
+    
+    const hint = `按 [F] 切换颜色格式: ${this.colorFormat.toUpperCase()}`;
+    formatEl.innerText = hint;
   }
 
   private getPixelColor(x: number, y: number) {
-    if (!this.screenSnapshot) return { r: 0, g: 0, b: 0 };
+    if (!this.screenSnapshot || x < 0 || y < 0) return { r: 0, g: 0, b: 0 };
     
-    // Create a temporary canvas to get pixel data
-    const canvas = document.createElement('canvas');
-    canvas.width = 1;
-    canvas.height = 1;
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(this.screenSnapshot, x, y, 1, 1, 0, 0, 1, 1);
-    const data = ctx.getImageData(0, 0, 1, 1).data;
-    return { r: data[0], g: data[1], b: data[2] };
+    try {
+      // Create a temporary canvas to get pixel data
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(this.screenSnapshot, x, y, 1, 1, 0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      return { r: data[0], g: data[1], b: data[2] };
+    } catch (e) {
+      return { r: 0, g: 0, b: 0 };
+    }
   }
 
   private formatColor(r: number, g: number, b: number) {

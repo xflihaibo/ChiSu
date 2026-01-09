@@ -29,7 +29,9 @@ export class InspectorModule {
     (this.container.host as HTMLElement).style.pointerEvents = 'auto';
     
     window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('touchstart', this.handleMouseMove, { passive: true });
     window.addEventListener('click', this.handleClick);
+    window.addEventListener('touchend', this.handleClick, { passive: true });
   }
 
   public unmount() {
@@ -42,7 +44,9 @@ export class InspectorModule {
       this.lockedCard = null;
     }
     window.removeEventListener('mousemove', this.handleMouseMove);
+    window.removeEventListener('touchstart', this.handleMouseMove);
     window.removeEventListener('click', this.handleClick);
+    window.removeEventListener('touchend', this.handleClick);
     this.hoveredElement = null;
   }
 
@@ -58,13 +62,22 @@ export class InspectorModule {
     this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
   }
 
-  private handleMouseMove = (e: MouseEvent) => {
+  private handleMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!this.isActive) return;
+
+    let clientX: number, clientY: number;
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as MouseEvent).clientX;
+      clientY = (e as MouseEvent).clientY;
+    }
 
     // Temporarily disable overlay to get element under mouse
     const host = this.container.host as HTMLElement;
     host.style.pointerEvents = 'none';
-    const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement;
     host.style.pointerEvents = 'auto';
 
     if (el && el !== this.hoveredElement && el !== document.documentElement && el !== document.body) {
@@ -73,22 +86,35 @@ export class InspectorModule {
     }
   }
 
-  private handleClick = (e: MouseEvent) => {
+  private handleClick = (e: MouseEvent | TouchEvent) => {
     if (!this.isActive || !this.hoveredElement) return;
+
+    // 关键修复：touchend 必须使用 changedTouches 才能在手指离开后获取坐标
+    let clientX: number, clientY: number;
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = (e as MouseEvent).clientX;
+      clientY = (e as MouseEvent).clientY;
+    }
 
     // Check if the click is actually on a UI element inside Shadow DOM
     const path = e.composedPath();
-    const host = this.container.host as HTMLElement;
+    const isPluginUI = path.some(el => {
+      const id = (el as HTMLElement).id;
+      return id === 'mode-indicator' || id === 'devlens-inspector-card' || id === 'format-indicator' || id === 'stress-toolbar' || id === 'asset-panel';
+    });
     
-    // If the first element in the path is NOT the host, 
-    // it means we clicked on a UI component inside the shadow root.
-    if (path[0] !== host) {
+    if (isPluginUI) {
       return;
     }
 
-    e.preventDefault();
-    e.stopPropagation();
-    this.showInspectorCard(this.hoveredElement, e.clientX, e.clientY);
+    if (!('touches' in e)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    this.showInspectorCard(this.hoveredElement, clientX, clientY);
   }
 
   private render() {
@@ -144,26 +170,45 @@ export class InspectorModule {
   private showInspectorCard(el: HTMLElement, x: number, y: number) {
     if (this.lockedCard) this.lockedCard.remove();
 
+    const isMobile = window.innerWidth <= 500;
     const style = window.getComputedStyle(el);
     const card = document.createElement('div');
     card.id = 'devlens-inspector-card';
-    card.style.cssText = `
+    
+    const desktopStyle = `
       position: fixed;
       top: ${Math.min(y + 24, window.innerHeight - 340)}px;
       left: ${Math.min(x + 24, window.innerWidth - 300)}px;
       width: 260px;
-      background: #1a1a1a;
-      color: #fff;
-      border: 1px solid #333;
       border-radius: 10px;
+    `;
+
+    const mobileStyle = `
+      position: fixed;
+      bottom: 20px;
+      left: 10px;
+      right: 10px;
+      width: calc(100% - 20px);
+      max-width: none;
+      border-radius: 20px;
+      padding-bottom: 10px;
+    `;
+
+    card.style.cssText = `
+      ${isMobile ? mobileStyle : desktopStyle}
+      background: rgba(26, 26, 26, 0.95);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 13px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
       z-index: 10000;
       pointer-events: auto;
       overflow: hidden;
-      animation: card-appear 0.2s ease-out;
+      animation: ${isMobile ? 'slide-up' : 'card-appear'} 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     `;
 
     const colorHex = this.rgbToHex(style.color);
@@ -184,6 +229,10 @@ export class InspectorModule {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
         }
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
         .card-header {
           background: #222;
           padding: 12px 16px;
@@ -197,7 +246,7 @@ export class InspectorModule {
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
-        .card-body { padding: 16px; }
+        .card-body { padding: 16px; ${isMobile ? 'max-height: 50vh; overflow-y: auto;' : ''} }
         .prop-row { 
           display: flex; 
           justify-content: space-between; 
@@ -240,30 +289,30 @@ export class InspectorModule {
         .box-value { font-size: 11px; color: #999; }
       </style>
       <div class="card-header">
-        <span>Properties</span>
-        <span style="cursor: pointer; font-size: 14px;" id="close-card">×</span>
+        <span>${isMobile ? '元素属性详情' : 'Properties'}</span>
+        <span style="cursor: pointer; font-size: 20px; padding: 4px;" id="close-card">×</span>
       </div>
       <div class="card-body">
         <div class="prop-row">
-          <span class="prop-label">Font</span>
+          <span class="prop-label">字体 (Font)</span>
           <span class="prop-value copyable" data-val="${style.fontFamily}" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${style.fontFamily.split(',')[0].replace(/['"]/g, '')}
           </span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Size</span>
+          <span class="prop-label">字号 (Size)</span>
           <span class="prop-value copyable" data-val="${style.fontSize}">${style.fontSize}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Weight</span>
+          <span class="prop-label">字重 (Weight)</span>
           <span class="prop-value copyable" data-val="${style.fontWeight}">${style.fontWeight}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Line Height</span>
+          <span class="prop-label">行高 (Line Height)</span>
           <span class="prop-value copyable" data-val="${style.lineHeight}">${style.lineHeight}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Color</span>
+          <span class="prop-label">颜色 (Color)</span>
           <span class="prop-value copyable" data-val="${colorHex}">
             <span class="color-preview" style="background: ${style.color}"></span>${colorHex}
           </span>
@@ -271,11 +320,11 @@ export class InspectorModule {
         
         <div class="box-model-grid">
           <div class="box-item">
-            <span class="box-label" style="color: #f6b26b;">Margin</span>
+            <span class="box-label" style="color: #f6b26b;">外边距 (Margin)</span>
             <span class="box-value copyable" data-val="margin: ${mt} ${mr} ${mb} ${ml}">${mt} ${mr} ${mb} ${ml}</span>
           </div>
           <div class="box-item">
-            <span class="box-label" style="color: #93c47d;">Padding</span>
+            <span class="box-label" style="color: #93c47d;">内边距 (Padding)</span>
             <span class="box-value copyable" data-val="padding: ${pt} ${pr} ${pb} ${pl}">${pt} ${pr} ${pb} ${pl}</span>
           </div>
         </div>
