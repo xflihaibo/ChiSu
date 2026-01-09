@@ -47,6 +47,9 @@ export class OverlayManager {
   private async enable() {
     if (!this.container || !this.shadowRoot) return;
     
+    // 锁定页面滚动
+    document.body.style.overflow = 'hidden';
+    
     this.container.style.width = '100vw';
     this.container.style.height = '100vh';
     this.container.style.pointerEvents = 'auto';
@@ -142,6 +145,9 @@ export class OverlayManager {
 
   private disable() {
     if (!this.container || !this.shadowRoot) return;
+    
+    // 还原页面滚动
+    document.body.style.overflow = '';
     
     this.container.style.width = '0';
     this.container.style.height = '0';
