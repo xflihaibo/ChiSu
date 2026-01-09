@@ -23,27 +23,30 @@
 ChiSu (尺素) 是一款专为网页开发者和 UI 设计师打造的沉浸式辅助工具。它通过无损的 Shadow DOM 技术注入，确保在任何复杂网页上都能稳定运行，且不产生样式冲突。
 
 **主要功能：**
-- 📏 **测量模式 (Ruler Mode)**:
-  - 顶部与左侧像素刻度尺。
-  - 支持从刻度尺拖拽出无限量的水平/垂直参考线。
-  - 自动测量平行参考线间的像素距离。
-  - 标线支持再次拖拽调整。
-
-- 🎨 **取色模式 (Picker Mode)**:
-  - 10倍实时放大镜，像素级准确定位。
+- 📏 **测量模式 (测量)**:
+  - 顶部与左侧像素刻度尺（移动端自动缩放）。
+  - 支持从刻度尺拖拽出无限量的参考线，拖回即可删除。
+  - 智能标签避让：标注自动躲避屏幕边缘，确保测量数值永不遮挡。
+- 🎨 **取色模式 (取色)**:
+  - 10倍实时放大镜，针对 H5 优化“按住滑动取色，松开即复制”的高效交互。
+  - 感知式快照刷新：滚动页面后秒速同步视图，告别取色偏差。
   - 支持 HEX、RGB、HSL 格式一键切换 (快捷键 F)。
-  - 自动复制到剪贴板，并提供实时 Toast 提示。
-
-- 🔍 **审查模式 (Inspector Mode)**:
+- 🔍 **审查模式 (审查)**:
   - 盒子模型可视化：高亮 Margin (橙色) 与 Padding (绿色)。
-  - 详尽属性卡片：一键查看并复制 Font, Size, Weight, Line Height, Color。
-  - 穿透点击：锁定元素详情，对比更方便。
+  - 移动端浮层优化：大圆角精致卡片，展示 Font、Color 及详细 Box Model 间距。
+  - 一键复制：卡片内所有 CSS 属性点击即得。
+- 📦 **资源采集 (资源)**:
+  - 自动提取全页色彩方案、字体清单及所有图片/SVG。
+  - 提供 4 列瀑布流视图，支持图片链接一键复制。
+- 🎯 **边界模式 (边界)**:
+  - WYSIWYG 编辑：直接修改页面文字，测试极端排版表现。
+  - 压力测试工具箱：支持内容翻倍、暴力填充及局部还原。
 
 **为什么选择 ChiSu？**
-- **沉浸式体验**: 按下 Esc 键开启，全屏覆盖，专注调试。
-- **极致性能**: 基于 Canvas 渲染，即使在长网页上也丝滑顺畅。
+- **全平台适配**: 完美支持 PC 与移动端 H5 调试。
+- **灵动菜单**: 模式选择器支持自由拖拽，随心放置，不挡视野。
+- **沉浸式体验**: 按下 Esc 键开启，不禁用页面滚动，边走边调。
 - **零冲突**: 采用 Shadow DOM 隔离，不污染原网页样式。
-- **纯前端**: 无需服务器，保护隐私。
 
 ---
 
@@ -54,26 +57,28 @@ ChiSu is an immersive browser extension designed for web developers and UI desig
 
 **Key Features:**
 - 📏 **Ruler Mode**:
-  - Horizontal and vertical pixel rulers.
-  - Drag and drop unlimited guidelines from rulers.
-  - Automatic distance measurement between parallel guides.
-  - Re-draggable guidelines for easy adjustment.
-
+  - Auto-scaling pixel rulers for both Desktop and Mobile.
+  - Drag and drop unlimited guidelines; drag back to ruler to delete.
+  - Smart Boundary Avoidance: Labels automatically shift to stay visible near screen edges.
 - 🎨 **Picker Mode**:
-  - 10x real-time loupe for pixel-perfect sampling.
-  - Switch between HEX, RGB, and HSL formats (Shortcut: F).
-  - One-click copy with instant visual feedback.
-
+  - 10x real-time loupe with advanced mobile interaction (Press-to-sample, Release-to-copy).
+  - Perceptive Snapshot Sync: Automatically refreshes content after scrolling for perfect accuracy.
+  - Quick format switching (HEX/RGB/HSL) with the 'F' key.
 - 🔍 **Inspector Mode**:
-  - Visual Box Model: Highlights Margin (Orange) and Padding (Green).
-  - Detailed Property Card: View and copy Font, Size, Weight, Line Height, and Color.
-  - Stay focused: Lock element details for easy comparison.
+  - Visual Box Model: Real-time highlights for Margin (Orange) and Padding (Green).
+  - Responsive Property Card: View and copy Font, Color, and detailed Box Model values.
+- 📦 **Asset Collector**:
+  - Automatically extract color palettes, fonts, and all images/SVGs from the page.
+  - 4-column thumbnail grid with one-click image URL copying.
+- 🎯 **Boundary Mode (Stress Test)**:
+  - WYSIWYG Editing: Modify any text directly to test layout resilience.
+  - Content Stress Tools: Multiply text, fill with placeholders, or reset instantly.
 
 **Why ChiSu?**
-- **Immersive Mode**: Toggle with Esc for a dedicated workspace.
-- **High Performance**: Canvas-based rendering for 60fps performance on any page.
-- **Isolated UI**: Built with Shadow DOM to prevent CSS conflicts.
-- **Privacy First**: Runs entirely in your browser. No data leaves your machine.
+- **Mobile Optimized**: Full touch support and responsive UI for H5 debugging.
+- **Draggable Menu**: Move the mode indicator anywhere to stay out of your way.
+- **Immersive & Non-blocking**: Toggle with Esc without disabling native page scrolling.
+- **Pure Performance**: Isolated with Shadow DOM and rendered via High-performance Canvas.
 
 ---
 
