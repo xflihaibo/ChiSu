@@ -11,6 +11,8 @@ export class PickerModule {
   private lastMouseY: number = -1000;
   private isScrolling: boolean = false;
   private scrollTimeout: any = null;
+  private snapshotScrollX: number = 0;
+  private snapshotScrollY: number = 0;
 
   constructor(private container: ShadowRoot) {
     this.canvas = document.createElement('canvas');
@@ -127,6 +129,10 @@ export class PickerModule {
   }
 
   private async takeSnapshot() {
+    // 记录快照时的滚动位置，用于补偿滚动偏差
+    this.snapshotScrollX = window.scrollX;
+    this.snapshotScrollY = window.scrollY;
+
     return new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ type: 'CAPTURE_SCREEN' }, (response) => {
         const img = new Image();
@@ -188,6 +194,16 @@ export class PickerModule {
     // In mobile, offset the loupe slightly upwards to avoid finger blockage
     const renderY = isMobile ? mouseY - 40 : mouseY;
 
+    // 计算缩放比例 (处理 DPR 和 缩放)
+    const scaleX = this.screenSnapshot.naturalWidth / width;
+    const scaleY = this.screenSnapshot.naturalHeight / height;
+
+    // 核心逻辑：计算相对于快照拍摄时的像素坐标
+    // clientX + scrollX = pageX (当前页面绝对坐标)
+    // pageX - snapshotScrollX = 相对于快照左上角的偏移
+    const sourceX = (mouseX + window.scrollX - this.snapshotScrollX) * scaleX;
+    const sourceY = (mouseY + window.scrollY - this.snapshotScrollY) * scaleY;
+
     // Draw the Loupe
     this.ctx.save();
     
@@ -198,9 +214,13 @@ export class PickerModule {
 
     // Draw zoomed image
     const sourceSize = this.loupeSize / this.zoom;
+    // 注意：sourceSize 也要考虑缩放比例，否则放大倍数不对
+    const sw = sourceSize * scaleX;
+    const sh = sourceSize * scaleY;
+
     this.ctx.drawImage(
       this.screenSnapshot,
-      mouseX - sourceSize / 2, mouseY - sourceSize / 2, sourceSize, sourceSize,
+      sourceX - sw / 2, sourceY - sh / 2, sw, sh,
       mouseX - this.loupeSize / 2, renderY - this.loupeSize / 2, this.loupeSize, this.loupeSize
     );
 
@@ -295,12 +315,18 @@ export class PickerModule {
     if (!this.screenSnapshot || x < 0 || y < 0) return { r: 0, g: 0, b: 0 };
     
     try {
+      const scaleX = this.screenSnapshot.naturalWidth / window.innerWidth;
+      const scaleY = this.screenSnapshot.naturalHeight / window.innerHeight;
+      
+      const sourceX = (x + window.scrollX - this.snapshotScrollX) * scaleX;
+      const sourceY = (y + window.scrollY - this.snapshotScrollY) * scaleY;
+
       // Create a temporary canvas to get pixel data
       const canvas = document.createElement('canvas');
       canvas.width = 1;
       canvas.height = 1;
       const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(this.screenSnapshot, x, y, 1, 1, 0, 0, 1, 1);
+      ctx.drawImage(this.screenSnapshot, sourceX, sourceY, 1, 1, 0, 0, 1, 1);
       const data = ctx.getImageData(0, 0, 1, 1).data;
       return { r: data[0], g: data[1], b: data[2] };
     } catch (e) {

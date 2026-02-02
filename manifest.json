@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "ChiSu (尺素) - 开发者像素助手",
+  "name": "ChiSu - Pixel Perfect Ruler（网页像素尺/取色器） & UI Measure Tool(前端像素眼)",
   "short_name": "ChiSu",
-  "version": "0.1.0",
-  "description": "专业级前端开发者工具。集成高精度屏幕取色器(Color Picker)、多功能像素标尺(Pixel Ruler)及元素盒子模型(Box Model)审查，助力网页布局与CSS色彩调试。",
+  "version": "1.0.2",
+  "description": "featuring a high-precision Color Picker, Pixel Ruler, and Spacing Measurement for pixel-perfect CSS debugging.",
   "icons": {
     "16": "icons/icon.png",
     "32": "icons/icon.png",
